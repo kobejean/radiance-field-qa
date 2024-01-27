@@ -68,3 +68,52 @@ rfqa_nerfacto = MethodSpecification(
     description="Nerfstudio method template.",
 )
 
+
+rfqa_nerfacto_big = MethodSpecification(
+    config=TrainerConfig(
+        method_name="rfqa-nerfacto-big",
+        steps_per_eval_batch=500,
+        steps_per_eval_image=5000,
+        steps_per_save=5000,
+        max_num_iterations=30000,
+        mixed_precision=True,
+        pipeline=VanillaPipelineConfig(
+            datamanager=ParallelDataManagerConfig(
+                dataparser=NerfstudioDataParserConfig(),
+                train_num_rays_per_batch=4096,
+                eval_num_rays_per_batch=4096,
+            ),
+            model=NerfactoModelConfig(
+                eval_num_rays_per_chunk=1 << 15,
+                num_nerf_samples_per_ray=128,
+                num_proposal_samples_per_ray=(512, 256),
+                hidden_dim=128,
+                hidden_dim_color=128,
+                appearance_embed_dim=128,
+                max_res=4096,
+                proposal_weights_anneal_max_num_iters=5000,
+                log2_hashmap_size=21,
+                camera_optimizer=CameraOptimizerConfig(mode="SO3xR3"),
+                background_color='random'
+            ),
+        ),
+        optimizers={
+            "proposal_networks": {
+                "optimizer": RAdamOptimizerConfig(lr=1e-2, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=50000),
+            },
+            "fields": {
+                "optimizer": RAdamOptimizerConfig(lr=1e-2, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=50000),
+            },
+            "camera_opt": {
+                "optimizer": AdamOptimizerConfig(lr=1e-3, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=5000),
+            },
+        },
+        viewer=ViewerConfig(num_rays_per_chunk=1 << 15),
+        vis="viewer",
+    ),
+    description="Nerfstudio method template big.",
+)
+
