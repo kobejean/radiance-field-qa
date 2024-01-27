@@ -1,4 +1,5 @@
 method: bayes
+project: radiance-field-qa
 metric:
   goal: maximize
   name: Eval Images Metrics Dict (all images)/psnr
@@ -6,14 +7,16 @@ parameters:
   scale-factor:
     distribution: q_log_uniform_values
     q: 0.1
-    max: 10.0
-    min: 0.1
+    max: 5.0
+    min: 0.5
   pipeline.model.distortion_loss_mult:
     distribution: q_log_uniform_values
     q: 0.0002
     max: 0.01
     min: 0.0004
   pipeline.model.disable_scene_contraction:
+    values: [True, False]
+  pipeline.model.use_gradient_scaling:
     values: [True, False]
   optimizers.fields.optimizer.lr:
     distribution: q_log_uniform_values

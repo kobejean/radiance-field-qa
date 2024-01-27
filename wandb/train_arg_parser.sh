@@ -17,8 +17,7 @@ for arg in "$@"; do
 done
 
 # Call the ns-train script with the grouped arguments
-echo "Parsed arguments, running command:"
-echo "ns-train nerfacto --vis wandb --project_name radiance-field-qa --experiment_name lego --viewer.quit_on_train_completion True     $args1 blender-data $args2 --data ~/Datasets/NeRF/blender/lego"
-ns-train nerfacto --vis wandb --project_name radiance-field-qa \
-    --experiment_name lego --viewer.quit_on_train_completion True \
-    $args1 blender-data $args2 --data ~/Datasets/NeRF/blender/lego
+echo "Parsed arguments, running command"
+ns-train rfqa-nerfacto --vis=wandb --project_name=radiance-field-qa \
+    --experiment_name=lego --viewer.quit_on_train_completion=True \
+    $args1 rfqa-blender-data $args2 --data ~/Datasets/NeRF/blender/lego

@@ -10,4 +10,7 @@ include = ["rfqa*"]
 
 # register the entry point of your new method here:
 [project.entry-points.'nerfstudio.method_configs']
-rfqa = 'rfqa.template_config:rfqa'
+rfqa-nerfacto = 'rfqa.method_configs:rfqa_nerfacto'
+
+[project.entry-points.'nerfstudio.dataparser_configs']
+rfqa-blender-data = 'rfqa.dataparser_configs:rfqa_blender_dataparser'
