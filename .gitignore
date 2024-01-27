@@ -1,4 +1,7 @@
 outputs/
+wandb/sweep-*
+wandb/run-*
+wandb/latest-run
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
