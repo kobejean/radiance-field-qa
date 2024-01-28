@@ -23,6 +23,7 @@ from typing import Dict, List, Literal, Optional, Tuple, Type
 
 import nerfacc
 import torch
+import numpy as np
 from torch.nn import Parameter
 
 from nerfstudio.cameras.rays import RayBundle
@@ -35,6 +36,9 @@ from nerfstudio.model_components.ray_samplers import VolumetricSampler
 from nerfstudio.model_components.renderers import AccumulationRenderer, DepthRenderer, RGBRenderer
 from nerfstudio.models.base_model import Model, ModelConfig
 from nerfstudio.utils import colormaps
+from torch import nn
+from nerfstudio.fields.density_fields import HashMLPDensityField
+from nerfstudio.model_components.ray_samplers import ProposalNetworkSampler, UniformSampler
 
 
 @dataclass
@@ -75,6 +79,7 @@ class InstantNGPModelConfig(ModelConfig):
     """The color that is given to untrained areas."""
     disable_scene_contraction: bool = False
     """Whether to disable scene contraction or not."""
+    huber_loss_delta: float = 0.1
 
 
 class NGPModel(Model):
@@ -114,18 +119,65 @@ class NGPModel(Model):
         if self.config.render_step_size is None:
             # auto step size: ~1000 samples in the base level grid
             self.config.render_step_size = ((self.scene_aabb[3:] - self.scene_aabb[:3]) ** 2).sum().sqrt().item() / 1000
-        # Occupancy Grid.
-        self.occupancy_grid = nerfacc.OccGridEstimator(
-            roi_aabb=self.scene_aabb,
-            resolution=self.config.grid_resolution,
-            levels=self.config.grid_levels,
-        )
 
-        # Sampler
-        self.sampler = VolumetricSampler(
-            occupancy_grid=self.occupancy_grid,
-            density_fn=self.field.density_fn,
+        # EDITED BEGIN
+        # Occupancy Grid.
+        # self.occupancy_grid = nerfacc.OccGridEstimator(
+        #     roi_aabb=self.scene_aabb,
+        #     resolution=self.config.grid_resolution,
+        #     levels=self.config.grid_levels,
+        # )
+
+        # # Sampler
+        # self.sampler = VolumetricSampler(
+        #     occupancy_grid=self.occupancy_grid,
+        #     density_fn=self.field.density_fn,
+        # )
+            
+        # """How many hashgrid features per level"""
+        num_proposal_samples_per_ray = (256, 96)
+        # """Number of samples per ray for each proposal network."""
+        num_nerf_samples_per_ray = 48
+        # """Number of samples per ray for the nerf network."""
+        proposal_update_every = 5
+        # """Sample every n steps after the warmup"""
+        proposal_warmup = 5000
+        # """Scales n from 1 to proposal_update_every over this many steps"""
+        num_proposal_iterations = 2
+                
+        proposal_net_args_list = [
+            {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 128, "use_linear": False},
+            {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 256, "use_linear": False},
+        ]
+        num_prop_nets = len(proposal_net_args_list)
+        self.proposal_networks = torch.nn.ModuleList()
+        for i in range(num_prop_nets):
+            prop_net_args = proposal_net_args_list[min(i, len(proposal_net_args_list) - 1)]
+            network = HashMLPDensityField(
+                self.scene_box.aabb,
+                spatial_distortion=scene_contraction,
+                **prop_net_args,
+                implementation="tcnn",
+            )
+            self.proposal_networks.append(network)
+        self.density_fns.extend([network.density_fn for network in self.proposal_networks])
+
+        # Samplers
+        def update_schedule(step):
+            return np.clip(
+                np.interp(step, [0, proposal_warmup], [0, proposal_update_every]),
+                1,
+                proposal_update_every,
+            )
+        self.proposal_sampler = ProposalNetworkSampler(
+            num_nerf_samples_per_ray=num_nerf_samples_per_ray,
+            num_proposal_samples_per_ray=num_proposal_samples_per_ray,
+            num_proposal_network_iterations=num_proposal_iterations,
+            single_jitter=True,#self.config.use_single_jitter,
+            update_sched=update_schedule,
+            initial_sampler=None,
         )
+        # EDITED END
 
         # renderers
         self.renderer_rgb = RGBRenderer(background_color=self.config.background_color)
@@ -133,7 +185,7 @@ class NGPModel(Model):
         self.renderer_depth = DepthRenderer(method="expected")
 
         # losses
-        self.rgb_loss = MSELoss()
+        self.rgb_loss = nn.HuberLoss(reduction='mean', delta=0.1)
 
         # metrics
         from torchmetrics.functional import structural_similarity_index_measure
@@ -144,22 +196,56 @@ class NGPModel(Model):
         self.ssim = structural_similarity_index_measure
         self.lpips = LearnedPerceptualImagePatchSimilarity(normalize=True)
 
+    # def get_training_callbacks(
+    #     self, training_callback_attributes: TrainingCallbackAttributes
+    # ) -> List[TrainingCallback]:
+    #     def update_occupancy_grid(step: int):
+    #         self.occupancy_grid.update_every_n_steps(
+    #             step=step,
+    #             occ_eval_fn=lambda x: self.field.density_fn(x) * self.config.render_step_size,
+    #         )
+
+    #     return [
+    #         TrainingCallback(
+    #             where_to_run=[TrainingCallbackLocation.BEFORE_TRAIN_ITERATION],
+    #             update_every_num_iters=1,
+    #             func=update_occupancy_grid,
+    #         ),
+    #     ]
     def get_training_callbacks(
         self, training_callback_attributes: TrainingCallbackAttributes
     ) -> List[TrainingCallback]:
-        def update_occupancy_grid(step: int):
-            self.occupancy_grid.update_every_n_steps(
-                step=step,
-                occ_eval_fn=lambda x: self.field.density_fn(x) * self.config.render_step_size,
-            )
+        callbacks = []
+        # anneal the weights of the proposal network before doing PDF sampling
+        N = self.config.proposal_weights_anneal_max_num_iters
 
-        return [
+        def set_anneal(step):
+            # https://arxiv.org/pdf/2111.12077.pdf eq. 18
+            self.step = step
+            train_frac = np.clip(step / N, 0, 1)
+            self.step = step
+
+            def bias(x, b):
+                return b * x / ((b - 1) * x + 1)
+
+            anneal = bias(train_frac, 10.0)#self.config.proposal_weights_anneal_slope)
+            self.proposal_sampler.set_anneal(anneal)
+
+        callbacks.append(
             TrainingCallback(
                 where_to_run=[TrainingCallbackLocation.BEFORE_TRAIN_ITERATION],
                 update_every_num_iters=1,
-                func=update_occupancy_grid,
-            ),
-        ]
+                func=set_anneal,
+            )
+        )
+        callbacks.append(
+            TrainingCallback(
+                where_to_run=[TrainingCallbackLocation.AFTER_TRAIN_ITERATION],
+                update_every_num_iters=1,
+                func=self.proposal_sampler.step_cb,
+            )
+        )
+        return callbacks
 
     def get_param_groups(self) -> Dict[str, List[Parameter]]:
         param_groups = {}
@@ -172,46 +258,56 @@ class NGPModel(Model):
         assert self.field is not None
         num_rays = len(ray_bundle)
 
-        with torch.no_grad():
-            ray_samples, ray_indices = self.sampler(
-                ray_bundle=ray_bundle,
-                near_plane=self.config.near_plane,
-                far_plane=self.config.far_plane,
-                render_step_size=self.config.render_step_size,
-                alpha_thre=self.config.alpha_thre,
-                cone_angle=self.config.cone_angle,
-            )
+        # with torch.no_grad():
+        #     ray_samples, ray_indices = self.sampler(
+        #         ray_bundle=ray_bundle,
+        #         near_plane=self.config.near_plane,
+        #         far_plane=self.config.far_plane,
+        #         render_step_size=self.config.render_step_size,
+        #         alpha_thre=self.config.alpha_thre,
+        #         cone_angle=self.config.cone_angle,
+        #     )
+        
+        ray_samples, weights_list, ray_samples_list = self.proposal_sampler(ray_bundle, density_fns=self.density_fns)
 
         field_outputs = self.field(ray_samples)
         if self.config.use_gradient_scaling:
             field_outputs = scale_gradients_by_distance_squared(field_outputs, ray_samples)
 
+
         # accumulation
-        packed_info = nerfacc.pack_info(ray_indices, num_rays)
-        weights = nerfacc.render_weight_from_density(
-            t_starts=ray_samples.frustums.starts[..., 0],
-            t_ends=ray_samples.frustums.ends[..., 0],
-            sigmas=field_outputs[FieldHeadNames.DENSITY][..., 0],
-            packed_info=packed_info,
-        )[0]
-        weights = weights[..., None]
+        weights = ray_samples.get_weights(field_outputs[FieldHeadNames.DENSITY])
+        weights_list.append(weights)
+        ray_samples_list.append(ray_samples)
+
+        # packed_info = nerfacc.pack_info(ray_indices, num_rays)
+        # weights = nerfacc.render_weight_from_density(
+        #     t_starts=ray_samples.frustums.starts[..., 0],
+        #     t_ends=ray_samples.frustums.ends[..., 0],
+        #     sigmas=field_outputs[FieldHeadNames.DENSITY][..., 0],
+        #     packed_info=packed_info,
+        # )[0]
+        # weights = weights[..., None]
 
         rgb = self.renderer_rgb(
             rgb=field_outputs[FieldHeadNames.RGB],
             weights=weights,
-            ray_indices=ray_indices,
-            num_rays=num_rays,
+            # ray_indices=ray_indices,
+            # num_rays=num_rays,
         )
-        depth = self.renderer_depth(
-            weights=weights, ray_samples=ray_samples, ray_indices=ray_indices, num_rays=num_rays
+        with torch.no_grad():
+            depth = self.renderer_depth(
+                weights=weights, ray_samples=ray_samples, #ray_indices=ray_indices, num_rays=num_rays
+            )
+        accumulation = self.renderer_accumulation(
+            weights=weights, #ray_indices=ray_indices, num_rays=num_rays
         )
-        accumulation = self.renderer_accumulation(weights=weights, ray_indices=ray_indices, num_rays=num_rays)
 
         outputs = {
             "rgb": rgb,
             "accumulation": accumulation,
             "depth": depth,
-            "num_samples_per_ray": packed_info[:, 1],
+            # "num_samples_per_ray": packed_info[:, 1],
         }
         return outputs
 
@@ -220,7 +316,7 @@ class NGPModel(Model):
         image = self.renderer_rgb.blend_background(image)
         metrics_dict = {}
         metrics_dict["psnr"] = self.psnr(outputs["rgb"], image)
-        metrics_dict["num_samples_per_batch"] = outputs["num_samples_per_ray"].sum()
+        # metrics_dict["num_samples_per_batch"] = outputs["num_samples_per_ray"].sum()
         return metrics_dict
 
     def get_loss_dict(self, outputs, batch, metrics_dict=None):

@@ -134,7 +134,7 @@ rfqa_instant_ngp = MethodSpecification(
         steps_per_save=2000,
         max_num_iterations=30000,
         mixed_precision=True,
-        pipeline=DynamicBatchPipelineConfig(
+        pipeline=VanillaPipelineConfig(
             datamanager=VanillaDataManagerConfig(
                 dataparser=NerfstudioDataParserConfig(),
                 train_num_rays_per_batch=4096,
@@ -148,7 +148,7 @@ rfqa_instant_ngp = MethodSpecification(
                 "scheduler": ExponentialDecaySchedulerConfig(lr_final=0.0001, max_steps=200000),
             }
         },
-        viewer=ViewerConfig(num_rays_per_chunk=1 << 12),
+        viewer=ViewerConfig(num_rays_per_chunk=1 << 11),
         vis="viewer",
     ),
     description="Nerfstudio method template instant-ngp.",
