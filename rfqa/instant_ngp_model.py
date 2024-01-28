@@ -218,7 +218,7 @@ class NGPModel(Model):
     ) -> List[TrainingCallback]:
         callbacks = []
         # anneal the weights of the proposal network before doing PDF sampling
-        N = self.config.proposal_weights_anneal_max_num_iters
+        N = 1000 #self.config.proposal_weights_anneal_max_num_iters
 
         def set_anneal(step):
             # https://arxiv.org/pdf/2111.12077.pdf eq. 18
