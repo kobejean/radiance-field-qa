@@ -257,7 +257,7 @@ class NGPModel(Model):
 
     def get_outputs(self, ray_bundle: RayBundle):
         assert self.field is not None
-        num_rays = len(ray_bundle)
+        # num_rays = len(ray_bundle)
 
         # with torch.no_grad():
         #     ray_samples, ray_indices = self.sampler(
