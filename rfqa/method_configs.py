@@ -129,7 +129,7 @@ rfqa_nerfacto_big = MethodSpecification(
 
 rfqa_instant_ngp = MethodSpecification(
     config=TrainerConfig(
-        method_name="instant-ngp",
+        method_name="rfqa-instant-ngp",
         steps_per_eval_batch=500,
         steps_per_save=2000,
         max_num_iterations=30000,
