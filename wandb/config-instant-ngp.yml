@@ -18,9 +18,9 @@ parameters:
   #   values: [True, False]
   optimizers.fields.optimizer.lr:
     distribution: q_log_uniform_values
-    q: 0.001
-    max: 0.02
-    min: 0.005
+    q: 0.00001
+    max: 0.008
+    min: 0.0005
   # optimizers.fields.scheduler.lr_final:
   #   distribution: q_log_uniform_values
   #   q: 0.000001
@@ -28,24 +28,24 @@ parameters:
   #   min: 0.000005
   optimizers.proposal_networks.optimizer.lr:
     distribution: q_log_uniform_values
-    q: 0.001
-    max: 0.02
+    q: 0.0001
+    max: 0.01
     min: 0.005
   pipeline.model.interlevel_loss_mult:
     distribution: q_log_uniform_values
     q: 0.01
     max: 1.2
-    min: 0.8
+    min: 0.95
   pipeline.model.proposal_weights_anneal_slope:
     distribution: q_log_uniform_values
-    q: 1.0
-    max: 12.0
-    min: 8.0
-  pipeline.model.huber_loss_delta:
-    distribution: q_uniform
-    q: 0.05
-    max: 1.0
-    min: 0.5
+    q: 0.01
+    max: 11.5
+    min: 9.5
+  # pipeline.model.huber_loss_delta:
+  #   distribution: q_uniform
+  #   q: 0.05
+  #   max: 1.0
+  #   min: 0.5
   # optimizers.proposal_networks.scheduler.lr_final:
   #   distribution: q_log_uniform_values
   #   q: 0.000001
