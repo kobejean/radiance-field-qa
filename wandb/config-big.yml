@@ -14,8 +14,8 @@ parameters:
     q: 0.0001
     max: 0.004
     min: 0.0001
-  pipeline.model.use_gradient_scaling:
-    values: [True, False]
+  # pipeline.model.use_gradient_scaling:
+  #   values: [True, False]
   optimizers.fields.optimizer.lr:
     distribution: q_log_uniform_values
     q: 0.001

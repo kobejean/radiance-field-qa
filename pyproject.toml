@@ -12,6 +12,7 @@ include = ["rfqa*"]
 [project.entry-points.'nerfstudio.method_configs']
 rfqa-nerfacto = 'rfqa.method_configs:rfqa_nerfacto'
 rfqa-nerfacto-big = 'rfqa.method_configs:rfqa_nerfacto_big'
+rfqa-instant-ngp = 'rfqa.method_configs:rfqa_instant_ngp'
 
 [project.entry-points.'nerfstudio.dataparser_configs']
 rfqa-blender-data = 'rfqa.dataparser_configs:rfqa_blender_dataparser'
