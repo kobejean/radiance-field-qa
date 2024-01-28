@@ -190,7 +190,7 @@ class NGPModel(Model):
         self.renderer_depth = DepthRenderer(method="expected")
 
         # losses
-        self.rgb_loss = nn.HuberLoss(reduction='mean', delta=0.1)
+        self.rgb_loss = MSELoss()#nn.HuberLoss(reduction='mean', delta=0.1)
 
         # metrics
         from torchmetrics.functional import structural_similarity_index_measure
