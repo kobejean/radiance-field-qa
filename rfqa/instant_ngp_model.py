@@ -160,6 +160,7 @@ class NGPModel(Model):
                 implementation="tcnn",
             )
             self.proposal_networks.append(network)
+        self.density_fns = []
         self.density_fns.extend([network.density_fn for network in self.proposal_networks])
 
         # Samplers
