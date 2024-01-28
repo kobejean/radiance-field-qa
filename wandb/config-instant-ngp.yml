@@ -1,0 +1,58 @@
+method: bayes
+project: radiance-field-qa
+metric:
+  goal: maximize
+  name: Eval Images Metrics Dict (all images)/psnr
+parameters:
+  # scale-factor:
+  #   distribution: q_log_uniform_values
+  #   q: 0.1
+  #   max: 5.0
+  #   min: 1.0
+  # pipeline.model.distortion_loss_mult:
+  #   distribution: q_log_uniform_values
+  #   q: 0.0001
+  #   max: 0.004
+  #   min: 0.0001
+  # pipeline.model.use_gradient_scaling:
+  #   values: [True, False]
+  optimizers.fields.optimizer.lr:
+    distribution: q_log_uniform_values
+    q: 0.001
+    max: 0.02
+    min: 0.005
+  # optimizers.fields.scheduler.lr_final:
+  #   distribution: q_log_uniform_values
+  #   q: 0.000001
+  #   max: 0.0005
+  #   min: 0.000005
+  optimizers.proposal_networks.optimizer.lr:
+    distribution: q_log_uniform_values
+    q: 0.001
+    max: 0.02
+    min: 0.005
+  pipeline.model.interlevel_loss_mult:
+    distribution: q_log_uniform_values
+    q: 0.01
+    max: 1.2
+    min: 0.8
+  pipeline.model.proposal_weights_anneal_slope:
+    distribution: q_log_uniform_values
+    q: 1.0
+    max: 12.0
+    min: 8.0
+  pipeline.model.huber_loss_delta:
+    distribution: q_uniform
+    q: 0.05
+    max: 1.0
+    min: 0.5
+  # optimizers.proposal_networks.scheduler.lr_final:
+  #   distribution: q_log_uniform_values
+  #   q: 0.000001
+  #   max: 0.0005
+  #   min: 0.000005
+command:
+  - ${env}
+  - bash
+  - wandb/train_arg_parser_instant_ngp.sh
+  - ${args}

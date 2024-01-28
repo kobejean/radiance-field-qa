@@ -31,9 +31,13 @@ from nerfstudio.engine.callbacks import TrainingCallback, TrainingCallbackAttrib
 from nerfstudio.field_components.field_heads import FieldHeadNames
 from nerfstudio.field_components.spatial_distortions import SceneContraction
 from rfqa.nerfacto_field import NerfactoField
-from nerfstudio.model_components.losses import MSELoss, scale_gradients_by_distance_squared
+from nerfstudio.model_components.losses import (
+    MSELoss,
+    scale_gradients_by_distance_squared, 
+    interlevel_loss,
+)
 from nerfstudio.model_components.ray_samplers import VolumetricSampler
-from nerfstudio.model_components.renderers import AccumulationRenderer, DepthRenderer, RGBRenderer
+from nerfstudio.model_components.renderers import AccumulationRenderer, DepthRenderer, RGBRenderer, background_color_override_context
 from nerfstudio.model_components.scene_colliders import NearFarCollider
 from nerfstudio.models.base_model import Model, ModelConfig
 from nerfstudio.utils import colormaps
@@ -50,10 +54,6 @@ class InstantNGPModelConfig(ModelConfig):
         default_factory=lambda: NGPModel
     )  # We can't write `NGPModel` directly, because `NGPModel` doesn't exist yet
     """target class to instantiate"""
-    enable_collider: bool = False
-    """Whether to create a scene collider to filter rays."""
-    collider_params: Optional[Dict[str, float]] = None
-    """Instant NGP doesn't use a collider."""
     grid_resolution: int = 128
     """Resolution of the grid used for the field."""
     grid_levels: int = 8
@@ -72,15 +72,56 @@ class InstantNGPModelConfig(ModelConfig):
     """How far along ray to start sampling."""
     far_plane: float = 1e3
     """How far along ray to stop sampling."""
-    use_gradient_scaling: bool = False
+    use_gradient_scaling: bool = True
     """Use gradient scaler where the gradients are lower for points closer to the camera."""
     use_appearance_embedding: bool = False
     """Whether to use an appearance embedding."""
     background_color: Literal["random", "black", "white"] = "random"
     """The color that is given to untrained areas."""
     disable_scene_contraction: bool = False
-    """Whether to disable scene contraction or not."""
-    huber_loss_delta: float = 0.1
+
+    """"""
+    huber_loss_delta: float = 0.5
+    """How"""
+    num_proposal_samples_per_ray: Tuple[int, ...] = (256, 96)
+    """Number of samples per ray for each proposal network."""
+    num_nerf_samples_per_ray: int = 48
+    """Number of samples per ray for the nerf network."""
+    proposal_update_every: int = 5
+    """Sample every n steps after the warmup"""
+    proposal_warmup: int = 5000
+    """Scales n from 1 to proposal_update_every over this many steps"""
+    num_proposal_iterations: int = 2
+    """Number of proposal network iterations."""
+    use_same_proposal_network: bool = False
+    """Use the same proposal network. Otherwise use different ones."""
+    proposal_net_args_list: List[Dict] = field(
+        default_factory=lambda: [
+            {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 128, "use_linear": False},
+            {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 256, "use_linear": False},
+        ]
+    )
+    """Arguments for the proposal density fields."""
+    proposal_initial_sampler: Literal["piecewise", "uniform"] = "piecewise"
+    """Initial sampler for the proposal network. Piecewise is preferred for unbounded scenes."""
+    interlevel_loss_mult: float = 1.0
+    """Proposal loss multiplier."""
+    distortion_loss_mult: float = 0.002
+    """Distortion loss multiplier."""
+    orientation_loss_mult: float = 0.0001
+    """Orientation loss multiplier on computed normals."""
+    pred_normal_loss_mult: float = 0.001
+    """Predicted normal loss multiplier."""
+    use_proposal_weight_anneal: bool = True
+    """Whether to use average appearance embedding or zeros for inference."""
+    proposal_weights_anneal_slope: float = 10.0
+    """Slope of the annealing function for the proposal weights."""
+    proposal_weights_anneal_max_num_iters: int = 1000
+    """Max num iterations for the annealing function."""
+    use_single_jitter: bool = True
+    
+    implementation: Literal["tcnn", "torch"] = "tcnn"
+    """Which implementation to use for the model."""
 
 
 class NGPModel(Model):
@@ -135,50 +176,57 @@ class NGPModel(Model):
         #     density_fn=self.field.density_fn,
         # )
             
-        # """How many hashgrid features per level"""
-        num_proposal_samples_per_ray = (256, 96)
-        # """Number of samples per ray for each proposal network."""
-        num_nerf_samples_per_ray = 48
-        # """Number of samples per ray for the nerf network."""
-        proposal_update_every = 5
-        # """Sample every n steps after the warmup"""
-        proposal_warmup = 5000
-        # """Scales n from 1 to proposal_update_every over this many steps"""
-        num_proposal_iterations = 2
-                
-        proposal_net_args_list = [
-            {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 128, "use_linear": False},
-            {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 256, "use_linear": False},
-        ]
-        num_prop_nets = len(proposal_net_args_list)
+        
+        self.density_fns = []
+        num_prop_nets = self.config.num_proposal_iterations
+        # Build the proposal network(s)
         self.proposal_networks = torch.nn.ModuleList()
-        for i in range(num_prop_nets):
-            prop_net_args = proposal_net_args_list[min(i, len(proposal_net_args_list) - 1)]
+        if self.config.use_same_proposal_network:
+            assert len(self.config.proposal_net_args_list) == 1, "Only one proposal network is allowed."
+            prop_net_args = self.config.proposal_net_args_list[0]
             network = HashMLPDensityField(
                 self.scene_box.aabb,
                 spatial_distortion=scene_contraction,
                 **prop_net_args,
-                implementation="tcnn",
+                implementation=self.config.implementation,
             )
             self.proposal_networks.append(network)
-        self.density_fns = []
-        self.density_fns.extend([network.density_fn for network in self.proposal_networks])
+            self.density_fns.extend([network.density_fn for _ in range(num_prop_nets)])
+        else:
+            for i in range(num_prop_nets):
+                prop_net_args = self.config.proposal_net_args_list[min(i, len(self.config.proposal_net_args_list) - 1)]
+                network = HashMLPDensityField(
+                    self.scene_box.aabb,
+                    spatial_distortion=scene_contraction,
+                    **prop_net_args,
+                    implementation=self.config.implementation,
+                )
+                self.proposal_networks.append(network)
+            self.density_fns.extend([network.density_fn  for network in self.proposal_networks])
 
         # Samplers
         def update_schedule(step):
             return np.clip(
-                np.interp(step, [0, proposal_warmup], [0, proposal_update_every]),
+                np.interp(step, [0, self.config.proposal_warmup], [0, self.config.proposal_update_every]),
                 1,
-                proposal_update_every,
+                self.config.proposal_update_every,
             )
+
+        # Change proposal network initial sampler if uniform
+        initial_sampler = None  # None is for piecewise as default (see ProposalNetworkSampler)
+        if self.config.proposal_initial_sampler == "uniform":
+            initial_sampler = UniformSampler(single_jitter=self.config.use_single_jitter)
+
         self.proposal_sampler = ProposalNetworkSampler(
-            num_nerf_samples_per_ray=num_nerf_samples_per_ray,
-            num_proposal_samples_per_ray=num_proposal_samples_per_ray,
-            num_proposal_network_iterations=num_proposal_iterations,
-            single_jitter=True,#self.config.use_single_jitter,
+            num_nerf_samples_per_ray=self.config.num_nerf_samples_per_ray,
+            num_proposal_samples_per_ray=self.config.num_proposal_samples_per_ray,
+            num_proposal_network_iterations=self.config.num_proposal_iterations,
+            single_jitter=self.config.use_single_jitter,
             update_sched=update_schedule,
-            initial_sampler=None,
+            initial_sampler=initial_sampler,
         )
+
+
         # Collider
         self.collider = NearFarCollider(near_plane=self.config.near_plane, far_plane=self.config.far_plane)
 
@@ -190,7 +238,7 @@ class NGPModel(Model):
         self.renderer_depth = DepthRenderer(method="expected")
 
         # losses
-        self.rgb_loss = MSELoss()#nn.HuberLoss(reduction='mean', delta=0.1)
+        self.rgb_loss = nn.HuberLoss(reduction='mean', delta=self.config.huber_loss_delta)
 
         # metrics
         from torchmetrics.functional import structural_similarity_index_measure
@@ -221,41 +269,43 @@ class NGPModel(Model):
         self, training_callback_attributes: TrainingCallbackAttributes
     ) -> List[TrainingCallback]:
         callbacks = []
-        # anneal the weights of the proposal network before doing PDF sampling
-        N = 1000 #self.config.proposal_weights_anneal_max_num_iters
+        if self.config.use_proposal_weight_anneal:
+            # anneal the weights of the proposal network before doing PDF sampling
+            N = self.config.proposal_weights_anneal_max_num_iters
 
-        def set_anneal(step):
-            # https://arxiv.org/pdf/2111.12077.pdf eq. 18
-            self.step = step
-            train_frac = np.clip(step / N, 0, 1)
-            self.step = step
+            def set_anneal(step):
+                # https://arxiv.org/pdf/2111.12077.pdf eq. 18
+                self.step = step
+                train_frac = np.clip(step / N, 0, 1)
+                self.step = step
 
-            def bias(x, b):
-                return b * x / ((b - 1) * x + 1)
+                def bias(x, b):
+                    return b * x / ((b - 1) * x + 1)
 
-            anneal = bias(train_frac, 10.0)#self.config.proposal_weights_anneal_slope)
-            self.proposal_sampler.set_anneal(anneal)
+                anneal = bias(train_frac, self.config.proposal_weights_anneal_slope)
+                self.proposal_sampler.set_anneal(anneal)
 
-        callbacks.append(
-            TrainingCallback(
-                where_to_run=[TrainingCallbackLocation.BEFORE_TRAIN_ITERATION],
-                update_every_num_iters=1,
-                func=set_anneal,
+            callbacks.append(
+                TrainingCallback(
+                    where_to_run=[TrainingCallbackLocation.BEFORE_TRAIN_ITERATION],
+                    update_every_num_iters=1,
+                    func=set_anneal,
+                )
             )
-        )
-        callbacks.append(
-            TrainingCallback(
-                where_to_run=[TrainingCallbackLocation.AFTER_TRAIN_ITERATION],
-                update_every_num_iters=1,
-                func=self.proposal_sampler.step_cb,
+            callbacks.append(
+                TrainingCallback(
+                    where_to_run=[TrainingCallbackLocation.AFTER_TRAIN_ITERATION],
+                    update_every_num_iters=1,
+                    func=self.proposal_sampler.step_cb,
+                )
             )
-        )
         return callbacks
 
     def get_param_groups(self) -> Dict[str, List[Parameter]]:
         param_groups = {}
         if self.field is None:
             raise ValueError("populate_fields() must be called before get_param_groups")
+        param_groups["proposal_networks"] = list(self.proposal_networks.parameters())
         param_groups["fields"] = list(self.field.parameters())
         return param_groups
 
@@ -314,6 +364,10 @@ class NGPModel(Model):
             "depth": depth,
             # "num_samples_per_ray": packed_info[:, 1],
         }
+        # These use a lot of GPU memory, so we avoid storing them for eval.
+        if self.training:
+            outputs["weights_list"] = weights_list
+            outputs["ray_samples_list"] = ray_samples_list
         return outputs
 
     def get_metrics_dict(self, outputs, batch):
@@ -325,7 +379,7 @@ class NGPModel(Model):
         return metrics_dict
 
     def get_loss_dict(self, outputs, batch, metrics_dict=None):
-        image = batch["image"][..., :3].to(self.device)
+        image = batch["image"].to(self.device)
         pred_rgb, image = self.renderer_rgb.blend_background_for_loss_computation(
             pred_image=outputs["rgb"],
             pred_accumulation=outputs["accumulation"],
@@ -333,6 +387,10 @@ class NGPModel(Model):
         )
         rgb_loss = self.rgb_loss(image, pred_rgb)
         loss_dict = {"rgb_loss": rgb_loss}
+        if self.training:
+            loss_dict["interlevel_loss"] = self.config.interlevel_loss_mult * interlevel_loss(
+                outputs["weights_list"], outputs["ray_samples_list"]
+            )
         return loss_dict
 
     def get_image_metrics_and_images(
