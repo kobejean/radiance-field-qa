@@ -87,9 +87,12 @@ rfqa_nerfacto_big = MethodSpecification(
                 eval_num_rays_per_chunk=1 << 15,
                 num_nerf_samples_per_ray=128,
                 num_proposal_samples_per_ray=(512, 256),
+                proposal_net_args_list=[
+                    {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 512, "use_linear": False},
+                    {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 7, "max_res": 2048, "use_linear": False},
+                ],
                 hidden_dim=128,
                 hidden_dim_color=128,
-                appearance_embed_dim=128,
                 max_res=4096,
                 proposal_weights_anneal_max_num_iters=5000,
                 log2_hashmap_size=21,
@@ -100,11 +103,11 @@ rfqa_nerfacto_big = MethodSpecification(
         optimizers={
             "proposal_networks": {
                 "optimizer": RAdamOptimizerConfig(lr=1e-2, eps=1e-15),
-                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=50000),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=200000),
             },
             "fields": {
                 "optimizer": RAdamOptimizerConfig(lr=1e-2, eps=1e-15),
-                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=50000),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=1e-4, max_steps=200000),
             },
             "camera_opt": {
                 "optimizer": AdamOptimizerConfig(lr=1e-3, eps=1e-15),
