@@ -34,6 +34,7 @@ from rfqa.nerfacto_field import NerfactoField
 from nerfstudio.model_components.losses import MSELoss, scale_gradients_by_distance_squared
 from nerfstudio.model_components.ray_samplers import VolumetricSampler
 from nerfstudio.model_components.renderers import AccumulationRenderer, DepthRenderer, RGBRenderer
+from nerfstudio.model_components.scene_colliders import NearFarCollider
 from nerfstudio.models.base_model import Model, ModelConfig
 from nerfstudio.utils import colormaps
 from torch import nn
@@ -178,6 +179,9 @@ class NGPModel(Model):
             update_sched=update_schedule,
             initial_sampler=None,
         )
+        # Collider
+        self.collider = NearFarCollider(near_plane=self.config.near_plane, far_plane=self.config.far_plane)
+
         # EDITED END
 
         # renderers
