@@ -1,27 +1,33 @@
-method: bayes
+method: grid
 project: radiance-field-qa
 metric:
   goal: maximize
   name: Eval Images Metrics Dict (all images)/combined_score
 parameters:
   pipeline.model.proposal_net_args_list.0.hidden_dim:
-    values: [8, 16]
+    values: [16]
   pipeline.model.proposal_net_args_list.0.log2_hashmap_size:
-    values: [15, 16, 17]
-  pipeline.model.log2_hashmap_size:
-    values: [16, 17, 18, 19]
+    values: [16]
+#  pipeline.model.log2_hashmap_size:
+#    values: [14, 15, 16, 17]
+  pipeline.model.num_levels:
+    values: [4, 8, 16, 32]
+  pipeline.model.features_per_level:
+    values: [1, 2, 4, 8]
+  pipeline.model.log2_hashmap_total_size:
+    values: [22, 23, 24]
   pipeline.model.hidden_dim:
-    values: [64, 128]
+    values: [64]
   pipeline.model.hidden_dim_color:
-    values: [64, 128]
+    values: [64]
   pipeline.model.proposal_net_args_list.0.num_levels:
-    values: [4,5,6]
+    values: [5]
   pipeline.model.proposal_net_args_list.0.max_res:
-    values: [128,256]
+    values: [128]
   optimizers.fields.optimizer.lr:
-    values: [0.003, 0.006, 0.009]
+    values: [0.006, 0.009]
   optimizers.proposal_networks.optimizer.lr:
-    values: [0.02, 0.01, 0.005]
+    values: [0.006]
   # data:
   #   values:
   #     - ~/Datasets/NeRF/blender/lego
@@ -29,6 +35,6 @@ parameters:
   #     - ~/Datasets/NeRF/blender/drums
 command:
   - ${env}
-  - bash
-  - wandb/train_arg_parser_grid.sh
+  - python
+  - wandb/train.py
   - ${args}

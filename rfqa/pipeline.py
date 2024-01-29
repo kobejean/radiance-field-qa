@@ -18,6 +18,7 @@ Abstracts for the Pipeline class.
 from __future__ import annotations
 
 import typing
+import math
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -99,7 +100,7 @@ class RFQAPipeline(VanillaPipeline):
         """
         metrics_dict = super().get_average_eval_image_metrics(step, output_path, get_std)
         model_size = self.get_model_size()
-        combined_score = float(metrics_dict["psnr"] + torch.log10(model_size)*1.67 + 9.2)
+        combined_score = float(metrics_dict["psnr"] - (math.log10(float(model_size))*1.67 + 9.2))
         metrics_dict["model_size"] = model_size
         metrics_dict["combined_score"] = combined_score
         return metrics_dict
