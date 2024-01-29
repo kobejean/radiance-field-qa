@@ -83,6 +83,36 @@ class RFQAPipeline(VanillaPipeline):
         model: The model that will be used
     """
 
+    @profiler.time_function
+    def get_average_eval_image_metrics(
+        self, step: Optional[int] = None, output_path: Optional[Path] = None, get_std: bool = False
+    ):
+        """Iterate over all the images in the eval dataset and get the average.
+
+        Args:
+            step: current training step
+            output_path: optional path to save rendered images to
+            get_std: Set True if you want to return std with the mean metric.
+
+        Returns:
+            metrics_dict: dictionary of metrics
+        """
+        metrics_dict = super().get_average_eval_image_metrics(step, output_path, get_std)
+        model_size = self.get_model_size()
+        combined_score = float(metrics_dict["psnr"] + torch.log(model_size)*1.67 + 9.2)
+        metrics_dict["model_size"] = model_size
+        metrics_dict["combined_score"] = combined_score
+        return metrics_dict
+    
+    def get_model_size(self):
+        data_size = 0
+        for name, param in self.model.named_parameters():
+            is_blacklisted = "lpips" in name
+            if param.requires_grad and param.numel() > 0 and not is_blacklisted:
+                size_in_bytes = param.numel() * param.element_size()
+                data_size += size_in_bytes
+        return data_size
+
 
     def get_training_callbacks(
         self, training_callback_attributes: TrainingCallbackAttributes
