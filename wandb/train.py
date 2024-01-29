@@ -1,32 +1,42 @@
 import sys
 import os
 
-def main():
-    # Initialize empty strings for the two groups of arguments
-    args1 = ""
-    args2 = ""
+def parse_arguments(argv):
+    args1 = {}
+    args2 = {}
 
-    # Iterate over all passed arguments (excluding the script name)
-    for arg in sys.argv[1:]:
-        # Check if the argument starts with '--pipeline.data_manager'
-        if arg.startswith('--pipeline.data_manager'):
-            # Add to group2
-            args2 += f" {arg}"
-        else:
-            # Add to group1
-            args1 += f" {arg}"
+    for arg in argv:
+        if arg.startswith('--'):
+            key, _, value = arg.lstrip('-').partition('=')
+            if key.startswith('pipeline.data_manager'):
+                args2[key] = value
+            else:
+                args1[key] = value
+    args1["pipeline.model.log2_hashmap_size"] = args1["pipeline.model.log2_hashmap_total_size"]
+    del args1["pipeline.model.log2_hashmap_total_size"]
+    return args1, args2
 
-    # Prepare the command for ns-train script with the grouped arguments
+def build_command(args1, args2):
+    # Convert dictionaries back to command line arguments
+    args1_str = ' '.join([f"--{key}={value}" for key, value in args1.items()])
+    args2_str = ' '.join([f"--{key}={value}" for key, value in args2.items()])
+
     command = f"ns-train rfqa-nerfacto --vis=wandb --project_name=radiance-field-qa " \
               f"--experiment_name=lego-grid --viewer.quit_on_train_completion=True " \
               f"--pipeline.model.disable_scene_contraction=True --pipeline.model.use_gradient_scaling=True " \
-              f"{args1} rfqa-blender-data {args2} --scale-factor=1.5 --data ~/Datasets/NeRF/blender/lego"
+              f"{args1_str} rfqa-blender-data {args2_str} --scale-factor=1.5 --data ~/Datasets/NeRF/blender/lego"
+    return command
 
-    # Output the parsed arguments and the command (simulating the echo in bash)
+def main():
+    args1, args2 = parse_arguments(sys.argv[1:])
+
+    command = build_command(args1, args2)
+
+    # Output the parsed arguments and the command
     print("Parsed arguments, running command")
     print(command)
 
-    # If needed, execute the command here
+    # Execute the command
     os.system(command)
 
 if __name__ == "__main__":
