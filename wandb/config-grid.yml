@@ -1,0 +1,18 @@
+method: grid
+project: radiance-field-qa
+metric:
+  goal: maximize
+  name: Eval Images Metrics Dict (all images)/psnr
+parameters:
+  scale-factor:
+    distribution: q_log_uniform_values
+    q: 0.1
+    max: 5.0
+    min: 0.5
+  pipeline.model.distortion_loss_mult:
+    values: [True, False]
+command:
+  - ${env}
+  - bash
+  - wandb/train_arg_parser_grid.sh
+  - ${args}

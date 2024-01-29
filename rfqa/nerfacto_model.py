@@ -98,7 +98,7 @@ class NerfactoModelConfig(ModelConfig):
     """Initial sampler for the proposal network. Piecewise is preferred for unbounded scenes."""
     interlevel_loss_mult: float = 1.0
     """Proposal loss multiplier."""
-    distortion_loss_mult: float = 0.002
+    distortion_loss_mult: float = 0.003
     """Distortion loss multiplier."""
     orientation_loss_mult: float = 0.0001
     """Orientation loss multiplier on computed normals."""
@@ -108,7 +108,7 @@ class NerfactoModelConfig(ModelConfig):
     """Whether to use proposal weight annealing."""
     use_average_appearance_embedding: bool = True
     """Whether to use average appearance embedding or zeros for inference."""
-    proposal_weights_anneal_slope: float = 10.0
+    proposal_weights_anneal_slope: float = 11.0
     """Slope of the annealing function for the proposal weights."""
     proposal_weights_anneal_max_num_iters: int = 1000
     """Max num iterations for the annealing function."""

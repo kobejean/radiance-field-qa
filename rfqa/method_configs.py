@@ -49,7 +49,12 @@ rfqa_nerfacto = MethodSpecification(
             model=NerfactoModelConfig(
                 eval_num_rays_per_chunk=1 << 15,
                 camera_optimizer=CameraOptimizerConfig(mode="SO3xR3"),
-                background_color='random'
+                background_color='random',
+                num_proposal_iterations=1,
+                proposal_net_args_list=[
+                    {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 128, "use_linear": False},
+                    # {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 256, "use_linear": False},
+                ],
             ),
         ),
         optimizers={
@@ -58,8 +63,8 @@ rfqa_nerfacto = MethodSpecification(
                 "scheduler": ExponentialDecaySchedulerConfig(lr_final=0.0001, max_steps=200000),
             },
             "fields": {
-                "optimizer": AdamOptimizerConfig(lr=1e-2, eps=1e-15),
-                "scheduler": ExponentialDecaySchedulerConfig(lr_final=0.0001, max_steps=200000),
+                "optimizer": AdamOptimizerConfig(lr=6e-3, eps=1e-15),
+                "scheduler": ExponentialDecaySchedulerConfig(lr_final=0.0003, max_steps=200000),
             },
             "camera_opt": {
                 "optimizer": AdamOptimizerConfig(lr=1e-3, eps=1e-15),
