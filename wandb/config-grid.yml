@@ -2,7 +2,7 @@ method: bayes
 project: radiance-field-qa
 metric:
   goal: maximize
-  name: Eval Images Metrics Dict (all images)/psnr
+  name: Eval Images Metrics Dict (all images)/combined_score
 parameters:
   pipeline.model.proposal_net_args_list.0.hidden_dim:
     values: [8, 16]
