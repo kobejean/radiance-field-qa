@@ -24,7 +24,7 @@ from nerfstudio.engine.schedulers import (
 from nerfstudio.engine.trainer import TrainerConfig
 from rfqa.nerfacto_model import NerfactoModelConfig
 from rfqa.instant_ngp_model import InstantNGPModelConfig
-from rfqa.pipeline import VanillaPipelineConfig
+from rfqa.pipeline import RFQAPipelineConfig
 from nerfstudio.pipelines.dynamic_batch import DynamicBatchPipelineConfig
 
 
@@ -40,7 +40,7 @@ rfqa_nerfacto = MethodSpecification(
         steps_per_save=5000,
         max_num_iterations=30000,
         mixed_precision=True,
-        pipeline=VanillaPipelineConfig(
+        pipeline=RFQAPipelineConfig(
             datamanager=ParallelDataManagerConfig(
                 dataparser=BlenderDataParserConfig(),
                 train_num_rays_per_batch=4096,
@@ -86,7 +86,7 @@ rfqa_nerfacto_big = MethodSpecification(
         steps_per_save=5000,
         max_num_iterations=30000,
         mixed_precision=True,
-        pipeline=VanillaPipelineConfig(
+        pipeline=RFQAPipelineConfig(
             datamanager=ParallelDataManagerConfig(
                 dataparser=BlenderDataParserConfig(),
                 train_num_rays_per_batch=4096,
@@ -139,7 +139,7 @@ rfqa_instant_ngp = MethodSpecification(
         steps_per_save=2000,
         max_num_iterations=30000,
         mixed_precision=True,
-        pipeline=VanillaPipelineConfig(
+        pipeline=RFQAPipelineConfig(
             datamanager=ParallelDataManagerConfig(
                 dataparser=BlenderDataParserConfig(),
                 train_num_rays_per_batch=4096,

@@ -19,5 +19,6 @@ done
 # Call the ns-train script with the grouped arguments
 echo "Parsed arguments, running command"
 ns-train rfqa-nerfacto --vis=wandb --project_name=radiance-field-qa \
-    --experiment_name=lego-grid --viewer.quit_on_train_completion=True --pipeline.model.disable_scene_contraction=True\ --pipeline.model.use_gradient_scaling=True --pipeline.model.appearance_embed_dim=0 \
+    --experiment_name=lego-grid --viewer.quit_on_train_completion=True --pipeline.model.disable_scene_contraction=True \
+    --pipeline.model.use_gradient_scaling=True \
     $args1 rfqa-blender-data $args2  --scale-factor=1.5 --data ~/Datasets/NeRF/blender/lego
