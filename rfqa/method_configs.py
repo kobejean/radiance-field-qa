@@ -24,7 +24,7 @@ from nerfstudio.engine.schedulers import (
 from nerfstudio.engine.trainer import TrainerConfig
 from rfqa.nerfacto_model import NerfactoModelConfig
 from rfqa.instant_ngp_model import InstantNGPModelConfig
-from nerfstudio.pipelines.base_pipeline import VanillaPipelineConfig
+from rfqa.pipeline import VanillaPipelineConfig
 from nerfstudio.pipelines.dynamic_batch import DynamicBatchPipelineConfig
 
 
