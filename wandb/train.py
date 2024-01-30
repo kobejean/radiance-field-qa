@@ -13,8 +13,8 @@ def parse_arguments(argv):
                 args2[key] = value
             else:
                 args1[key] = value
-    scene = args1["scene"]
-    del args1["scene"]
+    scene = args1["a_scene"]
+    del args1["a_scene"]
     F_log = int(math.log2(float(args1["pipeline.model.features_per_level"])))
     L_log = int(math.log2(float(args1["pipeline.model.num_levels"])))
     Z = int(args1["pipeline.model.log2_hashmap_total_size"])

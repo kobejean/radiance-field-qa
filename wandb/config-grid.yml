@@ -28,7 +28,7 @@ parameters:
   #   values: [0.006, 0.009]
   # optimizers.proposal_networks.optimizer.lr:
   #   values: [0.006]
-  scene:
+  a_scene:
     values:
       - lego
       - hotdog
