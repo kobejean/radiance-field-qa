@@ -9,13 +9,14 @@ def parse_arguments(argv):
     for arg in argv:
         if arg.startswith('--'):
             key, _, value = arg.lstrip('-').partition('=')
-            if key.startswith('pipeline.data_manager'):
+            if key.startswith('pipeline.data_manager') or key.startswith('data'):
                 args2[key] = value
             else:
                 args1[key] = value
     F_log = int(math.log2(float(args1["pipeline.model.features_per_level"])))
     L_log = int(math.log2(float(args1["pipeline.model.num_levels"])))
-    T = int(args1["pipeline.model.log2_hashmap_total_size"]) - F_log - L_log
+    Z = int(args1["pipeline.model.log2_hashmap_total_size"])
+    T = Z - F_log - L_log
     args1["pipeline.model.log2_hashmap_size"] = str(T)
     del args1["pipeline.model.log2_hashmap_total_size"]
 
@@ -35,7 +36,7 @@ def build_command(args1, args2):
     command = f"ns-train rfqa-nerfacto --vis=wandb --project_name=radiance-field-qa " \
               f"--experiment_name=lego-grid --viewer.quit_on_train_completion=True " \
               f"--pipeline.model.disable_scene_contraction=True --pipeline.model.use_gradient_scaling=True " \
-              f"{args1_str} rfqa-blender-data {args2_str} --scale-factor=1.5 --data ~/Datasets/NeRF/blender/lego"
+              f"{args1_str} rfqa-blender-data {args2_str} --scale-factor=1.5"
     return command
 
 def main():
