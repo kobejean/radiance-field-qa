@@ -22,12 +22,12 @@ def parse_arguments(argv):
     args1["pipeline.model.log2_hashmap_size"] = str(T)
     del args1["pipeline.model.log2_hashmap_total_size"]
 
-    args1["pipeline.model.proposal_net_args_list.0.features_per_level"] = args1["pipeline.model.features_per_level"]
-    args1["pipeline.model.proposal_net_args_list.0.num_levels"] = str(int(math.pow(2, L_log-2) + 1))
-    args1["pipeline.model.proposal_net_args_list.0.log2_hashmap_size"] = str(int(T - 2))
-    args1["pipeline.model.proposal_net_args_list.1.features_per_level"] = args1["pipeline.model.features_per_level"]
-    args1["pipeline.model.proposal_net_args_list.1.num_levels"] = str(int(math.pow(2, L_log-2) + 1))
-    args1["pipeline.model.proposal_net_args_list.1.log2_hashmap_size"] = str(int(T - 2))
+    # args1["pipeline.model.proposal_net_args_list.0.features_per_level"] = args1["pipeline.model.features_per_level"]
+    args1["pipeline.model.proposal_net_args_list.0.num_levels"] = "17"#str(int(math.pow(2, L_log-2) + 1))
+    args1["pipeline.model.proposal_net_args_list.0.log2_hashmap_size"] = str(int(Z - 9))
+    # args1["pipeline.model.proposal_net_args_list.1.features_per_level"] = args1["pipeline.model.features_per_level"]
+    args1["pipeline.model.proposal_net_args_list.1.num_levels"] = "17"#str(int(math.pow(2, L_log-2) + 1))
+    args1["pipeline.model.proposal_net_args_list.1.log2_hashmap_size"] = str(int(Z - 9))
     return scene, args1, args2
 
 def build_command(scene, args1, args2):
