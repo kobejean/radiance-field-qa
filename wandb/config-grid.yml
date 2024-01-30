@@ -31,8 +31,8 @@ parameters:
   scene:
     values:
       - lego
-      # - hotdog
-      # - drums
+      - hotdog
+      - drums
 command:
   - ${env}
   - python
