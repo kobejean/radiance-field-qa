@@ -51,6 +51,8 @@ rfqa_nerfacto = MethodSpecification(
                 eval_num_rays_per_chunk=1 << 15,
                 background_color='random',
                 num_proposal_iterations=2,
+                near_plane=1.0,
+                far_plane=4.0,
                 proposal_net_args_list=[
                     {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 128, "use_linear": False},
                     {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 256, "use_linear": False},
