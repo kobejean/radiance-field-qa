@@ -1,5 +1,6 @@
 import sys
 import os
+import math
 
 def parse_arguments(argv):
     args1 = {}
@@ -12,7 +13,10 @@ def parse_arguments(argv):
                 args2[key] = value
             else:
                 args1[key] = value
-    args1["pipeline.model.log2_hashmap_size"] = args1["pipeline.model.log2_hashmap_total_size"]
+    F_log = int(math.log2(float(args1["pipeline.model.features_per_level"])))
+    L_log = int(math.log2(float(args1["pipeline.model.num_levels"])))
+    T = str(int(args1["pipeline.model.log2_hashmap_total_size"]) - F_log - L_log)
+    args1["pipeline.model.log2_hashmap_size"] = T
     del args1["pipeline.model.log2_hashmap_total_size"]
     return args1, args2
 
