@@ -54,8 +54,8 @@ rfqa_nerfacto = MethodSpecification(
                 near_plane=1.0,
                 far_plane=4.0,
                 proposal_net_args_list=[
-                    {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 128, "use_linear": False},
-                    {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 256, "use_linear": False},
+                    {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 128, "features_per_level": 2, "use_linear": False},
+                    {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 256, "features_per_level": 2, "use_linear": False},
                 ],
             ),
         ),
@@ -145,8 +145,8 @@ rfqa_instant_ngp = MethodSpecification(
                 num_nerf_samples_per_ray=128,
                 num_proposal_samples_per_ray=(512, 256),
                 proposal_net_args_list=[
-                    {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 128, "use_linear": False},
-                    {"hidden_dim": 16, "log2_hashmap_size": 18, "num_levels": 8, "max_res": 256, "use_linear": False},
+                    {"hidden_dim": 16, "log2_hashmap_size": 17, "num_levels": 5, "max_res": 128, "features_per_level": 2, "use_linear": False},
+                    {"hidden_dim": 16, "log2_hashmap_size": 18, "num_levels": 8, "max_res": 256, "features_per_level": 2, "use_linear": False},
                 ],
                 background_color='random'
             ),

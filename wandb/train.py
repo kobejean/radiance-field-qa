@@ -15,16 +15,16 @@ def parse_arguments(argv):
                 args1[key] = value
     F_log = int(math.log2(float(args1["pipeline.model.features_per_level"])))
     L_log = int(math.log2(float(args1["pipeline.model.num_levels"])))
-    T = str(int(args1["pipeline.model.log2_hashmap_total_size"]) - F_log - L_log)
-    args1["pipeline.model.log2_hashmap_size"] = T
+    T = int(args1["pipeline.model.log2_hashmap_total_size"]) - F_log - L_log
+    args1["pipeline.model.log2_hashmap_size"] = str(T)
     del args1["pipeline.model.log2_hashmap_total_size"]
 
     args1["pipeline.model.proposal_net_args_list.0.features_per_level"] = args1["pipeline.model.features_per_level"]
-    args1["pipeline.model.proposal_net_args_list.0.num_levels"] = str(math.pow(2, L_log-2) + 1)
-    args1["pipeline.model.proposal_net_args_list.0.log2_hashmap_size"] = str(T - 2)
+    args1["pipeline.model.proposal_net_args_list.0.num_levels"] = str(int(math.pow(2, L_log-2) + 1))
+    args1["pipeline.model.proposal_net_args_list.0.log2_hashmap_size"] = str(int(T - 2))
     args1["pipeline.model.proposal_net_args_list.1.features_per_level"] = args1["pipeline.model.features_per_level"]
-    args1["pipeline.model.proposal_net_args_list.1.num_levels"] = str(math.pow(2, L_log-2) + 1)
-    args1["pipeline.model.proposal_net_args_list.1.log2_hashmap_size"] = str(T - 2)
+    args1["pipeline.model.proposal_net_args_list.1.num_levels"] = str(int(math.pow(2, L_log-2) + 1))
+    args1["pipeline.model.proposal_net_args_list.1.log2_hashmap_size"] = str(int(T - 2))
     return args1, args2
 
 def build_command(args1, args2):
