@@ -38,7 +38,7 @@ def build_command(scene, args1, args2):
     command = f"ns-train rfqa-nerfacto --vis=wandb --project_name=radiance-field-qa " \
               f"--experiment_name=lego-grid --viewer.quit_on_train_completion=True " \
               f"--pipeline.model.disable_scene_contraction=True --pipeline.model.use_gradient_scaling=True " \
-              f"{args1_str} rfqa-blender-data {args2_str} --scale-factor=1.5 --data=~/Datasets/NeRF/blender/{scene}"
+              f"{args1_str} rfqa-blender-data {args2_str} --scale-factor=1.5 --data ~/Datasets/NeRF/blender/{scene}"
     return command
 
 def main():
