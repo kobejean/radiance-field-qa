@@ -28,9 +28,9 @@ parameters:
   #   values: [0.006, 0.009]
   # optimizers.proposal_networks.optimizer.lr:
   #   values: [0.006]
-  data:
+  scene:
     values:
-      - ~/Datasets/NeRF/blender/lego
+      - lego
       # - ~/Datasets/NeRF/blender/hotdog
       # - ~/Datasets/NeRF/blender/drums
 command:
