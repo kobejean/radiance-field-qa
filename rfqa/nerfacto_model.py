@@ -41,9 +41,8 @@ from nerfstudio.model_components.losses import (
     scale_gradients_by_distance_squared,
 )
 from nerfstudio.model_components.ray_samplers import ProposalNetworkSampler, UniformSampler
-from nerfstudio.model_components.renderers import AccumulationRenderer, DepthRenderer, NormalsRenderer, RGBRenderer
+from nerfstudio.model_components.renderers import AccumulationRenderer, DepthRenderer, RGBRenderer
 from nerfstudio.model_components.scene_colliders import NearFarCollider
-from nerfstudio.model_components.shaders import NormalsShader
 from nerfstudio.models.base_model import Model, ModelConfig
 from nerfstudio.utils import colormaps
 
@@ -109,7 +108,7 @@ class NerfactoModelConfig(ModelConfig):
     proposal_weights_anneal_max_num_iters: int = 1000
     """Max num iterations for the annealing function."""
     use_single_jitter: bool = True
-    """Whether to predict normals or not."""
+    """"""
     disable_scene_contraction: bool = False
     """Whether to disable scene contraction or not."""
     use_gradient_scaling: bool = False
@@ -198,10 +197,7 @@ class NerfactoModel(Model):
         self.renderer_accumulation = AccumulationRenderer()
         self.renderer_depth = DepthRenderer(method="median")
         self.renderer_expected_depth = DepthRenderer(method="expected")
-        self.renderer_normals = NormalsRenderer()
 
-        # shaders
-        self.normals_shader = NormalsShader()
 
         # losses
         self.rgb_loss = MSELoss()
@@ -262,7 +258,7 @@ class NerfactoModel(Model):
     def get_outputs(self, ray_bundle: RayBundle):
         ray_samples: RaySamples
         ray_samples, weights_list, ray_samples_list = self.proposal_sampler(ray_bundle, density_fns=self.density_fns)
-        field_outputs = self.field.forward(ray_samples, compute_normals=self.config.predict_normals)
+        field_outputs = self.field.forward(ray_samples)
         if self.config.use_gradient_scaling:
             field_outputs = scale_gradients_by_distance_squared(field_outputs, ray_samples)
 
