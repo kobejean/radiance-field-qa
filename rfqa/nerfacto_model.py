@@ -74,7 +74,7 @@ class NerfactoModelConfig(ModelConfig):
     """Size of the hashmap for the base mlp"""
     features_per_level: int = 2
     """How many hashgrid features per level"""
-    num_proposal_samples_per_ray: Tuple[int, ...] = (256, 128)
+    num_proposal_samples_per_ray: Tuple[int, ...] = (256, 96)
     """Number of samples per ray for each proposal network."""
     num_nerf_samples_per_ray: int = 48
     """Number of samples per ray for the nerf network."""

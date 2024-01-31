@@ -1,4 +1,4 @@
-method: grid
+method: bayes
 project: radiance-field-qa
 metric:
   goal: maximize
@@ -6,16 +6,18 @@ metric:
 parameters:
   # pipeline.model.proposal_net_args_list.0.hidden_dim:
   #   values: [16]
-  # pipeline.model.proposal_net_args_list.0.log2_hashmap_size:
-  #   values: [16]
-#  pipeline.model.log2_hashmap_size:
-#    values: [14, 15, 16, 17]
+  pipeline.model.proposal_net_args_list.0.log2_hashmap_size:
+    values: [15, 16, 17]
+  pipeline.model.proposal_net_args_list.1.log2_hashmap_size:
+    values: [15, 16, 17]
   pipeline.model.num_levels:
-    values: [8, 16, 32]
+    values: [32] #, 16, 8]
   pipeline.model.features_per_level:
-    values: [2, 4, 8]
+    values: [2] #, 4, 8]
   pipeline.model.log2_hashmap_total_size:
-    values: [24, 20, 23, 21, 22]
+    values: [24] #, 20, 23, 21, 22]
+  pipieline.model.distortion_loss_mult:
+    values: [0.003, 0.002, 0.005]
   # pipeline.model.hidden_dim:
   #   values: [64]
   # pipeline.model.hidden_dim_color:
@@ -24,15 +26,15 @@ parameters:
   #   values: [5]
   # pipeline.model.proposal_net_args_list.0.max_res:
   #   values: [128]
-  # optimizers.fields.optimizer.lr:
-  #   values: [0.01]
-  # optimizers.proposal_networks.optimizer.lr:
-  #   values: [0.006]
+  optimizers.fields.optimizer.lr:
+    values: [0.01, 0.02, 0.005]
+  optimizers.proposal_networks.optimizer.lr:
+    values: [0.01, 0.02, 0.005]
   a_scene:
     values:
       - drums
-      - lego
-      - hotdog
+      # - lego
+      # - hotdog
 command:
   - ${env}
   - python
