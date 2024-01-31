@@ -100,7 +100,7 @@ class NerfactoModelConfig(ModelConfig):
     distortion_loss_mult: float = 0.003
     """Distortion loss multiplier."""
     mask_loss_mult: float = 0.003
-    """Distortion loss multiplier."""
+    """Mask loss multiplier."""
     use_proposal_weight_anneal: bool = True
     """Whether to use proposal weight annealing."""
     use_average_appearance_embedding: bool = True
