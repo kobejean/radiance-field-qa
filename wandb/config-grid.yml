@@ -25,7 +25,7 @@ parameters:
   # pipeline.model.proposal_net_args_list.0.max_res:
   #   values: [128]
   # optimizers.fields.optimizer.lr:
-  #   values: [0.006, 0.009]
+  #   values: [0.01]
   # optimizers.proposal_networks.optimizer.lr:
   #   values: [0.006]
   a_scene:
