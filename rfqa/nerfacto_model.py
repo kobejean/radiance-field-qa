@@ -99,6 +99,8 @@ class NerfactoModelConfig(ModelConfig):
     """Proposal loss multiplier."""
     distortion_loss_mult: float = 0.003
     """Distortion loss multiplier."""
+    mask_loss_mult: float = 0.003
+    """Distortion loss multiplier."""
     use_proposal_weight_anneal: bool = True
     """Whether to use proposal weight annealing."""
     use_average_appearance_embedding: bool = True
@@ -319,10 +321,10 @@ class NerfactoModel(Model):
 
             if image.shape[-1] == 4:
                 alpha = image[..., 3]
-                mask = (alpha < 0.01).squeeze(-1)
+                mask = (alpha < 0.00000001).squeeze(-1)
                 loss_dict["mask_loss"] = 0
                 for weights in outputs["weights_list"]:
-                    loss_dict["mask_loss"] += torch.mean(weights[mask])
+                    loss_dict["mask_loss"] += self.config.mask_loss_mult * torch.mean(weights[mask])
                 
         return loss_dict
 
