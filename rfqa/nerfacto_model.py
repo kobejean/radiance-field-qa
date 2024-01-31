@@ -317,6 +317,13 @@ class NerfactoModel(Model):
             assert metrics_dict is not None and "distortion" in metrics_dict
             loss_dict["distortion_loss"] = self.config.distortion_loss_mult * metrics_dict["distortion"]
 
+            if image.shape[-1] == 4:
+                alpha = image[..., 3]
+                mask = (alpha < 0.01).squeeze(-1)
+                loss_dict["mask_loss"] = 0
+                for weights in outputs["weights_list"]:
+                    loss_dict["mask_loss"] += torch.mean(weights[mask])
+                
         return loss_dict
 
     def get_image_metrics_and_images(
