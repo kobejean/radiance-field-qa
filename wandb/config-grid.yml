@@ -16,7 +16,9 @@ parameters:
     values: [2] #, 4, 8]
   pipeline.model.log2_hashmap_total_size:
     values: [24] #, 20, 23, 21, 22]
-  pipieline.model.distortion_loss_mult:
+  pipeline.model.interlevel_loss_mult:
+    values: [1.0, 1.1, 0.9]
+  pipeline.model.distortion_loss_mult:
     values: [0.003, 0.002, 0.005]
   # pipeline.model.hidden_dim:
   #   values: [64]
