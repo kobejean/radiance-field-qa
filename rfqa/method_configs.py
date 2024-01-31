@@ -35,10 +35,10 @@ from rfqa.blender_dataparser import BlenderDataParserConfig
 rfqa_nerfacto = MethodSpecification(
     config=TrainerConfig(
         method_name="rfqa-nerfacto",
-        steps_per_eval_batch=500,
-        steps_per_eval_image=5000,
+        steps_per_eval_batch=100,
+        steps_per_eval_image=1000,
         steps_per_save=5000,
-        steps_per_eval_all_images=25000,
+        steps_per_eval_all_images=5000,
         max_num_iterations=25000+1,
         mixed_precision=True,
         pipeline=RFQAPipelineConfig(

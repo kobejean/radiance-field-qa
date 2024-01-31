@@ -13,9 +13,9 @@ parameters:
   pipeline.model.num_levels:
     values: [64] #[8, 16, 32, 64]
   pipeline.model.features_per_level:
-    values: [2, 4, 8]
+    values: [2, 4]
   pipeline.model.log2_hashmap_total_size:
-    values: [20, 21, 22, 23, 24]
+    values: [24, 20, 23, 21, 22]
   # pipeline.model.hidden_dim:
   #   values: [64]
   # pipeline.model.hidden_dim_color:
