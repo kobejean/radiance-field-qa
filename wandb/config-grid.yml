@@ -11,7 +11,7 @@ parameters:
 #  pipeline.model.log2_hashmap_size:
 #    values: [14, 15, 16, 17]
   pipeline.model.num_levels:
-    values: [8, 16, 32, 64]
+    values: [64] #[8, 16, 32, 64]
   pipeline.model.features_per_level:
     values: [2, 4, 8]
   pipeline.model.log2_hashmap_total_size:
@@ -30,9 +30,9 @@ parameters:
   #   values: [0.006]
   a_scene:
     values:
+      - drums
       - lego
       - hotdog
-      - drums
 command:
   - ${env}
   - python
